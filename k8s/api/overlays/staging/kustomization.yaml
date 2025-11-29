@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+namespace: staging
+
+# Staging-specific overrides
+replicas:
+  - name: url-shortener
+    count: 3
+
+patchesStrategicMerge:
+  - deployment-staging.yaml
