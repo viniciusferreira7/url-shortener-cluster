@@ -1,0 +1,52 @@
+# kind - Kubernetes in Docker
+.kind/
+kind-config.yaml
+kubeconfig.yaml
+
+# Kubernetes
+.kube/
+kubeconfig-*
+*.kubeconfig
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Local development
+.env
+.env.local
+*.local
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+npm-debug.log
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build artifacts
+dist/
+build/
+*.o
+*.a
+*.so
+
+# Logs
+logs/
+*.log
