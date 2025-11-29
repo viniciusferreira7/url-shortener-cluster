@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: url-shortener
+  namespace: prod
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      api: url-shortener-api
+  template:
+    spec:
+      containers:
+        - name: url-shortener-api
+          image: vinciusaf/url-shortener-api:latest
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
