@@ -1,305 +1,284 @@
-# Kubernetes Deployment Configuration
+# URL Shortener Cluster - Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying the URL Shortener API application.
+Complete Kubernetes deployment configuration for the URL Shortener API using **Kustomize** and **kind** (Kubernetes in Docker).
 
-## 📋 Contents
+## 🚀 Quick Start
 
-- **deployment.yml** - Kubernetes Deployment manifest for the URL Shortener API
-- **secret.yml** - Kubernetes Secret manifest with environment variables and configuration
-
-## 🚀 Overview
-
-The Kubernetes configuration deploys the URL Shortener API as a containerized application with:
-- 2 replica pods for high availability
-- Resource requests and limits for optimal cluster utilization
-- Secret management for sensitive environment variables
-- Port 3333 exposure for API access
-
-## 📦 Deployment Configuration
-
-### Namespace
-
-All resources are deployed in the `url-shortener` namespace.
-
-### Image
-
-The deployment uses the Docker image:
-```
-vinciusaf/url-shortener-api:4dacc42
+### 1. Create the Cluster
+```bash
+bash infra/scripts/setup.sh
 ```
 
-Replace the tag with your desired version (commit SHA or version tag).
+### 2. Deploy to Development
+```bash
+bash infra/scripts/deploy.sh dev
+```
 
-### Replicas
+### 3. Verify Deployment
+```bash
+kubectl get pods -n dev
+kubectl logs -f -n dev -l api=url-shortener-api
+```
 
-The deployment runs **2 replicas** for high availability and load balancing.
+## 📁 Directory Structure
 
-### Resource Management
+```
+url-shortener-cluster/
+├── docs/                          # Comprehensive documentation
+│   ├── ARCHITECTURE.md            # Project structure & design patterns
+│   ├── DEPLOYMENT.md              # Step-by-step deployment guide
+│   ├── SECRETS.md                 # Secrets management & security
+│   └── TROUBLESHOOTING.md         # Common issues & solutions
+│
+├── infra/                         # Infrastructure & automation
+│   ├── kind/
+│   │   └── config.yaml            # KinD cluster configuration
+│   └── scripts/
+│       ├── setup.sh               # Create kind cluster
+│       ├── deploy.sh              # Deploy to any environment
+│       └── cleanup.sh             # Delete cluster
+│
+├── k8s/                           # Kubernetes manifests
+│   ├── namespaces/
+│   │   └── dev.yaml               # Development namespace
+│   │
+│   └── api/                       # URL Shortener API
+│       ├── kustomization.yaml     # Base kustomization
+│       │
+│       ├── base/                  # Base resources (all environments)
+│       │   ├── deployment.yaml
+│       │   ├── service.yaml
+│       │   └── secret.yaml
+│       │
+│       └── overlays/              # Environment-specific customizations
+│           ├── dev/               # Development
+│           │   └── kustomization.yaml
+│           ├── staging/           # Staging
+│           │   ├── kustomization.yaml
+│           │   └── deployment-staging.yaml
+│           └── prod/              # Production
+│               ├── kustomization.yaml
+│               └── deployment-prod.yaml
+│
+└── README.md                      # This file
+```
 
-Each pod has the following resource specifications:
+## 🛠️ Technology Stack
 
-**Requests** (guaranteed minimum):
-- CPU: 100m (0.1 cores)
-- Memory: 64Mi
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **Kubernetes** | 1.19+ | Container orchestration |
+| **kind** | Latest | Local Kubernetes in Docker |
+| **Kustomize** | Built-in | Configuration management |
+| **Docker** | Latest | Container runtime |
+| **kubectl** | Latest | CLI for Kubernetes |
 
-**Limits** (maximum allowed):
-- CPU: 200m (0.2 cores)
-- Memory: 128Mi
+## 📦 Deployment Architecture
 
-These are conservative values suitable for a development environment. Adjust based on your actual load and cluster capacity.
+### Base Configuration
+Located in `k8s/api/base/`:
+- **Deployment**: Container specification and pod configuration
+- **Service**: ClusterIP for internal routing (port 80 → 3333)
+- **Secret**: Environment variables and credentials
+
+### Environment Overlays
+Each environment extends the base with specific customizations:
+
+| Environment | Replicas | CPU (req/lim) | Memory (req/lim) | Image Tag |
+|------------|----------|---------------|------------------|-----------|
+| **dev** | 2 | 100m/200m | 64Mi/128Mi | `4dacc42` |
+| **staging** | 3 | 200m/500m | 128Mi/256Mi | `staging` |
+| **prod** | 5 | 500m/1000m | 256Mi/512Mi | `latest` |
+
+## 🚀 Deployment Commands
+
+### Deploy to Specific Environment
+```bash
+# Development (2 replicas, minimal resources)
+bash infra/scripts/deploy.sh dev
+
+# Staging (3 replicas, medium resources)
+bash infra/scripts/deploy.sh staging
+
+# Production (5 replicas, high resources)
+bash infra/scripts/deploy.sh prod
+```
+
+### Using Kustomize Directly
+```bash
+# Preview configuration without deploying
+kubectl kustomize k8s/api/overlays/dev
+
+# Apply to cluster
+kubectl apply -k k8s/api/overlays/dev
+
+# Dry-run to check what will be applied
+kubectl apply -k k8s/api/overlays/prod --dry-run=client
+```
+
+### Verify Deployment
+```bash
+# Check deployments
+kubectl get deployments -n dev
+
+# Check pods
+kubectl get pods -n dev -o wide
+
+# Check services
+kubectl get services -n dev
+
+# View logs
+kubectl logs -f -n dev -l api=url-shortener-api
+
+# Describe deployment
+kubectl describe deployment url-shortener -n dev
+```
 
 ## 🔐 Secrets Management
 
-The `secret.yml` file defines a Kubernetes Secret named `url-shortener-secret` containing all required environment variables:
+All environment variables are stored in `k8s/api/base/secret.yaml`:
 
-### Secret Data
+| Variable | Purpose |
+|----------|---------|
+| `NODE_ENV` | Application environment (development/staging/production) |
+| `PORT` | API server port (3333) |
+| `CLIENT_URL` | Frontend application URL |
+| `BETTER_AUTH_URL` | Authentication service endpoint |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_USERNAME` | Database user credentials |
+| `DATABASE_PASSWORD` | Database password |
+| `DATABASE_NAME` | Database name |
+| `REDIS_URL` | Redis connection string |
+| `REDIS_PASSWORD` | Redis authentication |
 
-The following variables are configured (base64 encoded):
+**⚠️ Security Note**: Current secrets are base64-encoded (not encrypted). For production, use:
+- [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)
+- [External Secrets Operator](https://external-secrets.io/)
+- HashiCorp Vault, AWS Secrets Manager, or similar
 
-| Variable | Purpose | Value (decoded) |
-|----------|---------|-----------------|
-| `NODE_ENV` | Environment | development |
-| `PORT` | API Server Port | 3333 |
-| `CLIENT_URL` | Frontend URL | http://localhost:3000 |
-| `BETTER_AUTH_URL` | Auth Service URL | http://localhost:3333 |
-| `DATABASE_URL` | PostgreSQL Connection | postgresql://localhost:5432/url_shortener |
-| `DATABASE_USERNAME` | Database User | postgres |
-| `DATABASE_PASSWORD` | Database Password | postgres |
-| `DATABASE_NAME` | Database Name | url_shortener_pg |
-| `REDIS_URL` | Redis Connection | redis://localhost:6379 |
-| `REDIS_PASSWORD` | Redis Password | redis |
+See [docs/SECRETS.md](docs/SECRETS.md) for detailed security guidance.
 
-⚠️ **Security Warning**: These default credentials are for development only. For production:
-1. Use a secrets management system (e.g., HashiCorp Vault, AWS Secrets Manager)
-2. Update all passwords to strong, unique values
-3. Use proper database and Redis services (not localhost)
-4. Never commit secrets to version control
+## 🔧 Configuration Management
 
-## 🔧 Prerequisites
+### Kustomize Strategy
+This project uses the **base + overlays pattern**:
 
-- Kubernetes cluster (1.19+)
-- kubectl configured with access to your cluster
-- Database services (PostgreSQL and Redis) running and accessible
-- The URL shortener API Docker image available in your registry
+1. **Base** (`k8s/api/base/`): Common resources for all environments
+2. **Overlays** (`k8s/api/overlays/{env}/`): Environment-specific customizations
 
-## 📥 Deployment Steps
+Benefits:
+- DRY configuration (Don't Repeat Yourself)
+- Single source of truth
+- Easy environment-specific customization
+- Scalable for additional environments
 
-### 1. Create the Namespace
+### Customizing an Environment
+To customize staging deployment:
 
-```bash
-kubectl create namespace url-shortener
-```
+1. Edit `k8s/api/overlays/staging/deployment-staging.yaml`
+2. Update kustomization settings in `k8s/api/overlays/staging/kustomization.yaml`
+3. Redeploy: `bash infra/scripts/deploy.sh staging`
 
-### 2. Create the Secret
+## 📚 Documentation
 
-```bash
-kubectl apply -f secret.yml
-```
+Comprehensive guides are available in the `docs/` directory:
 
-To verify:
-```bash
-kubectl get secrets -n url-shortener
-kubectl describe secret url-shortener-secret -n url-shortener
-```
-
-### 3. Deploy the Application
-
-```bash
-kubectl apply -f deployment.yml
-```
-
-### 4. Verify the Deployment
-
-```bash
-# Check deployment status
-kubectl get deployment -n url-shortener
-
-# Check pod status
-kubectl get pods -n url-shortener
-
-# Check pod details
-kubectl describe pod -n url-shortener
-```
-
-## 🔍 Monitoring and Debugging
-
-### View Logs
-
-```bash
-# View logs from a specific pod
-kubectl logs <pod-name> -n url-shortener
-
-# View logs with timestamps
-kubectl logs <pod-name> -n url-shortener --timestamps=true
-
-# Stream logs in real-time
-kubectl logs -f <pod-name> -n url-shortener
-```
-
-### Access Pod
-
-```bash
-# Execute commands in a pod
-kubectl exec -it <pod-name> -n url-shortener -- /bin/sh
-```
-
-### Get Pod Details
-
-```bash
-# Detailed pod information
-kubectl describe pod <pod-name> -n url-shortener
-
-# Get pod YAML
-kubectl get pod <pod-name> -n url-shortener -o yaml
-```
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Design patterns, namespace organization, GitOps strategy
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Complete deployment guide with manual & script methods
+- **[SECRETS.md](docs/SECRETS.md)** - Secret management, security best practices, migration path
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## 🔄 Updating Deployments
 
-### Update the Image
-
+### Update Container Image
+Edit the appropriate overlay:
 ```bash
-kubectl set image deployment/url-shortener url-shortener-api=vinciusaf/url-shortener-api:<new-tag> -n url-shortener
+# Dev: k8s/api/overlays/dev/kustomization.yaml
+# Staging: k8s/api/overlays/staging/deployment-staging.yaml
+# Prod: k8s/api/overlays/prod/deployment-prod.yaml
 ```
 
-### Update Environment Variables
-
-Edit `secret.yml` and reapply:
-
+Then redeploy:
 ```bash
-kubectl apply -f secret.yml
+bash infra/scripts/deploy.sh dev  # or staging/prod
 ```
 
-Then restart the pods:
-
-```bash
-kubectl rollout restart deployment/url-shortener -n url-shortener
-```
-
-### Rollback a Deployment
-
-```bash
-# View rollout history
-kubectl rollout history deployment/url-shortener -n url-shortener
-
-# Rollback to previous version
-kubectl rollout undo deployment/url-shortener -n url-shortener
-
-# Rollback to a specific revision
-kubectl rollout undo deployment/url-shortener -n url-shortener --to-revision=2
-```
-
-## 🗑️ Cleanup
-
-### Delete the Deployment
-
-```bash
-kubectl delete deployment url-shortener -n url-shortener
-```
-
-### Delete the Secret
-
-```bash
-kubectl delete secret url-shortener-secret -n url-shortener
-```
-
-### Delete the Namespace
-
-```bash
-kubectl delete namespace url-shortener
-```
-
-## 📊 Resource Considerations
-
-### CPU & Memory Limits
-
-The current limits (200m CPU, 128Mi memory) are conservative. For production, consider:
-- **Development**: 100m CPU / 64Mi Memory
-- **Staging**: 200m CPU / 128Mi Memory
-- **Production**: 500m CPU / 256Mi Memory (adjust based on load testing)
-
-### Autoscaling
-
-To enable horizontal pod autoscaling, add a HorizontalPodAutoscaler:
-
+### Scale Replicas
+Edit the overlay kustomization file:
 ```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: url-shortener-hpa
-  namespace: url-shortener
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: url-shortener
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+replicas:
+  - name: url-shortener
+    count: 4  # Change this
 ```
 
-## 🔌 Network & Service
-
-To expose the application outside the cluster, create a Service:
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: url-shortener-service
-  namespace: url-shortener
-spec:
-  type: LoadBalancer
-  selector:
-    api: url-shortener-api
-  ports:
-  - port: 80
-    targetPort: 3333
-    protocol: TCP
+Apply changes:
+```bash
+kubectl apply -k k8s/api/overlays/dev
 ```
 
-## 🐛 Troubleshooting
+### Restart Pods
+```bash
+kubectl rollout restart deployment/url-shortener -n dev
+```
 
-### Pods not starting
+## 🧹 Cleanup
+
+### Remove Deployment
+```bash
+# From specific environment
+kubectl delete -k k8s/api/overlays/dev
+
+# Delete all deployments
+kubectl delete namespace dev staging prod
+```
+
+### Delete Entire Cluster
+```bash
+bash infra/scripts/cleanup.sh
+```
+
+## 🔍 Troubleshooting
+
+### Quick Diagnostics
+```bash
+# Check pod status
+kubectl get pods -n dev
+
+# View pod events
+kubectl describe pod POD_NAME -n dev
+
+# Check logs
+kubectl logs POD_NAME -n dev
+
+# Check resource usage
+kubectl top pods -n dev
+```
+
+For detailed troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+## 📊 Resource Monitoring
 
 ```bash
-kubectl describe pod <pod-name> -n url-shortener
-kubectl logs <pod-name> -n url-shortener
+# Monitor node resources
+kubectl top nodes
+
+# Monitor pod resources
+kubectl top pods -n dev
+
+# Watch deployment rollout
+kubectl rollout status deployment/url-shortener -n dev -w
 ```
 
-Common issues:
-- Image not found (check image name and registry access)
-- Environment variables not set (verify secret.yml)
-- Resource limits too low (check node available resources)
+## 🔗 Related Resources
 
-### Database connection issues
-
-- Ensure PostgreSQL and Redis services are accessible from the pod
-- Update DATABASE_URL and REDIS_URL in secret.yml with correct endpoints
-- Test connectivity from a pod: `kubectl exec -it <pod-name> -n url-shortener -- curl <database-host>`
-
-### Image pull errors
-
-```bash
-# Check image pull secrets
-kubectl get secrets -n url-shortener
-
-# Create secret for private registry if needed
-kubectl create secret docker-registry regcred \
-  --docker-server=<registry> \
-  --docker-username=<username> \
-  --docker-password=<password> \
-  -n url-shortener
-```
-
-## 📚 Additional Resources
-
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Kubernetes Deployment API](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#deployment-v1-apps)
-- [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
+- [Kubernetes Official Docs](https://kubernetes.io/docs/)
+- [Kustomize Documentation](https://kustomize.io/)
+- [kind - Kubernetes in Docker](https://kind.sigs.k8s.io/)
 - [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+
+## 📝 Project Information
+
+- **Container Image**: `vinciusaf/url-shortener-api`
+- **Service Port**: 80 (maps to container port 3333)
+- **Configuration**: Kustomize-based GitOps
+- **Local Dev**: kind cluster (Kubernetes in Docker)
