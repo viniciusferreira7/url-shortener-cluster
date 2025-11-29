@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 
-metadata: 
+metadata:
   name: url-shortener
-  namespace: url-shortener
+  namespace: dev
 
 spec:
   replicas: 2
@@ -24,7 +24,7 @@ spec:
           envFrom:
           - secretRef:
               name: url-shortener-secret
-          
+
           resources:
             requests:
               cpu: 100m
