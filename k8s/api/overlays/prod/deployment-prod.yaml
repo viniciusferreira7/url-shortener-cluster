@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
         - name: url-shortener-api
-          image: vinciusaf/url-shortener-api:latest
+          image: vinciusaf/url-shortener-api:30aa095
           resources:
             requests:
               cpu: 500m
