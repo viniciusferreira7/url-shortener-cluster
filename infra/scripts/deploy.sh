@@ -25,6 +25,9 @@ case "$ENVIRONMENT" in
     ;;
 esac
 
+echo "Creating namespace if it doesn't exist..."
+kubectl create namespace "$ENVIRONMENT" --dry-run=client -o yaml | kubectl apply -f -
+
 echo "Applying Kustomize configuration from: $OVERLAY_PATH"
 kubectl apply -k "$OVERLAY_PATH"
 
