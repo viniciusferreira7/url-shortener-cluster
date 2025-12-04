@@ -99,13 +99,25 @@ kubectl kustomize k8s/api/overlays/prod
 
 ### Update Image Version
 
-Edit the appropriate overlay deployment patch:
-- Dev: `k8s/api/overlays/dev/kustomization.yaml` or create a patch
-- Staging: `k8s/api/overlays/staging/deployment-staging.yaml`
-- Prod: `k8s/api/overlays/prod/deployment-prod.yaml`
+Edit the overlay's `kustomization.yaml` file and update the patch section:
 
+```bash
+# Edit the kustomization for your environment
+vi k8s/api/overlays/dev/kustomization.yaml    # or staging/prod
+```
+
+Update the image in the patches section:
 ```yaml
-image: vinciusaf/url-shortener-api:new-tag
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: url-shortener
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: vinciusaf/url-shortener-api:new-tag  # Update this
 ```
 
 Then redeploy:

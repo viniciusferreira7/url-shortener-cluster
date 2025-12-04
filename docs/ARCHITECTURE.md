@@ -53,26 +53,27 @@ The `k8s/api/base/` directory contains the core resources:
 ### Environment Overlays
 Each environment (dev, staging, prod) has an overlay that:
 1. Sets the appropriate namespace
-2. Adjusts replica counts
-3. Customizes resource limits
+2. Adjusts replica counts via Kustomize replicas field
+3. Customizes resource limits and images using JSON patches
 4. Uses environment-specific container images
 
 **Development (dev)**
 - 2 replicas
 - CPU: 100m/200m (request/limit)
 - Memory: 64Mi/128Mi
+- Image: `30aa095`
 
 **Staging**
 - 3 replicas
 - CPU: 200m/500m
 - Memory: 128Mi/256Mi
-- Image tag: staging
+- Image: `30aa095`
 
 **Production**
 - 5 replicas
 - CPU: 500m/1000m
 - Memory: 256Mi/512Mi
-- Image tag: latest
+- Image: `30aa095`
 
 ## Kustomize Strategy
 

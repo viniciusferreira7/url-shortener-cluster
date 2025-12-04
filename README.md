@@ -54,11 +54,9 @@ url-shortener-cluster/
 │           ├── dev/               # Development
 │           │   └── kustomization.yaml
 │           ├── staging/           # Staging
-│           │   ├── kustomization.yaml
-│           │   └── deployment-staging.yaml
+│           │   └── kustomization.yaml
 │           └── prod/              # Production
-│               ├── kustomization.yaml
-│               └── deployment-prod.yaml
+│               └── kustomization.yaml
 │
 └── README.md                      # This file
 ```
@@ -86,9 +84,9 @@ Each environment extends the base with specific customizations:
 
 | Environment | Replicas | CPU (req/lim) | Memory (req/lim) | Image Tag |
 |------------|----------|---------------|------------------|-----------|
-| **dev** | 2 | 100m/200m | 64Mi/128Mi | `4dacc42` |
-| **staging** | 3 | 200m/500m | 128Mi/256Mi | `staging` |
-| **prod** | 5 | 500m/1000m | 256Mi/512Mi | `latest` |
+| **dev** | 2 | 100m/200m | 64Mi/128Mi | `30aa095` |
+| **staging** | 3 | 200m/500m | 128Mi/256Mi | `30aa095` |
+| **prod** | 5 | 500m/1000m | 256Mi/512Mi | `30aa095` |
 
 ## 🚀 Deployment Commands
 
@@ -173,11 +171,18 @@ Benefits:
 - Scalable for additional environments
 
 ### Customizing an Environment
-To customize staging deployment:
+To customize environment-specific settings:
 
-1. Edit `k8s/api/overlays/staging/deployment-staging.yaml`
-2. Update kustomization settings in `k8s/api/overlays/staging/kustomization.yaml`
-3. Redeploy: `bash infra/scripts/deploy.sh staging`
+1. Edit `k8s/api/overlays/{env}/kustomization.yaml`
+2. Update the patches section to modify resources, images, or replica counts
+3. Redeploy: `bash infra/scripts/deploy.sh {env}`
+
+Example: To change staging replicas from 3 to 4, edit the kustomization.yaml:
+```yaml
+replicas:
+  - name: url-shortener
+    count: 4  # Changed from 3
+```
 
 ## 📚 Documentation
 
@@ -191,11 +196,25 @@ Comprehensive guides are available in the `docs/` directory:
 ## 🔄 Updating Deployments
 
 ### Update Container Image
-Edit the appropriate overlay:
+Edit the overlay's kustomization.yaml file and update the patch section:
+
 ```bash
-# Dev: k8s/api/overlays/dev/kustomization.yaml
-# Staging: k8s/api/overlays/staging/deployment-staging.yaml
-# Prod: k8s/api/overlays/prod/deployment-prod.yaml
+# Edit the kustomization file for your environment
+vi k8s/api/overlays/dev/kustomization.yaml    # or staging/prod
+```
+
+Update the image value in the patches section:
+```yaml
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: url-shortener
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: vinciusaf/url-shortener-api:new-tag  # Update this
 ```
 
 Then redeploy:
