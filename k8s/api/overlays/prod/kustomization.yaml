@@ -33,3 +33,15 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: 512Mi
+  - target:
+      group: apps
+      version: v1
+      kind: HorizontalPodAutoscaler
+      name: url-shortener-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 5
+      - op: replace
+        path: /spec/maxReplicas
+        value: 15
