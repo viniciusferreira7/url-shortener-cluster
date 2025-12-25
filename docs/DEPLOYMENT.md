@@ -196,9 +196,9 @@ bash infra/scripts/cleanup.sh
 
 This will remove the kind cluster completely.
 
-## Horizontal Pod Autoscaler (HPA)
+## Horizontal Pod Autoscaler V2 (HPA)
 
-The deployment includes HPA for automatic scaling based on CPU utilization.
+The deployment includes HPA V2 for automatic scaling based on CPU and memory utilization.
 
 ### Prerequisites
 
@@ -215,13 +215,13 @@ kubectl get deployment metrics-server -n kube-system
 kubectl wait --for=condition=available --timeout=60s deployment/metrics-server -n kube-system
 ```
 
-### HPA Configuration per Environment
+### HPA V2 Configuration per Environment
 
-| Environment | Min Replicas | Max Replicas | Target CPU |
-|------------|--------------|--------------|------------|
-| dev | 2 | 6 | 75% |
-| staging | 3 | 12 | 75% |
-| prod | 5 | 15 | 75% |
+| Environment | Min Replicas | Max Replicas | Target CPU | Target Memory |
+|------------|--------------|--------------|------------|---------------|
+| dev | 2 | 6 | 75% | 80% |
+| staging | 3 | 12 | 75% | 80% |
+| prod | 5 | 15 | 75% | 80% |
 
 ### Monitoring HPA
 
@@ -252,9 +252,9 @@ kubectl get hpa -n dev -w
 kubectl get pods -n dev -w
 ```
 
-### Customizing HPA
+### Customizing HPA V2
 
-To modify HPA settings, edit the overlay's `kustomization.yaml`:
+To modify HPA V2 settings, edit the overlay's `kustomization.yaml`:
 
 ```yaml
 patches:
@@ -269,8 +269,11 @@ patches:
         path: /spec/maxReplicas
         value: 20
       - op: replace
-        path: /spec/targetCPUUtilizationPercentage
-        value: 80
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 80  # CPU target
+      - op: replace
+        path: /spec/metrics/1/resource/target/averageUtilization
+        value: 85  # Memory target
 ```
 
 Then redeploy:
@@ -287,5 +290,5 @@ kubectl apply -k k8s/api/overlays/dev
 5. **Keep secrets secure** - consider external secret management for production
 6. **Use resource limits** to prevent resource exhaustion
 7. **Tag releases** in git before production deployments
-8. **Monitor HPA behavior** to ensure scaling thresholds are appropriate
-9. **Ensure Metrics Server is running** before deploying HPA-enabled applications
+8. **Monitor HPA V2 behavior** to ensure scaling thresholds are appropriate for both CPU and memory
+9. **Ensure Metrics Server is running** before deploying HPA V2-enabled applications

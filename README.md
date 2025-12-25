@@ -81,16 +81,16 @@ Located in `k8s/api/base/`:
 - **Deployment**: Container specification and pod configuration
 - **Service**: ClusterIP for internal routing (port 80 → 3333)
 - **Secret**: Environment variables and credentials
-- **HPA**: Horizontal Pod Autoscaler for automatic scaling based on CPU utilization
+- **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU and memory utilization
 
 ### Environment Overlays
 Each environment extends the base with specific customizations:
 
-| Environment | Replicas (Base) | HPA Range | CPU (req/lim) | Memory (req/lim) | Target CPU | Image Tag |
-|------------|----------------|-----------|---------------|------------------|------------|-----------|
-| **dev** | 2 | 2-6 | 100m/200m | 64Mi/128Mi | 75% | `30aa095` |
-| **staging** | 3 | 3-12 | 200m/500m | 128Mi/256Mi | 75% | `30aa095` |
-| **prod** | 5 | 5-15 | 500m/1000m | 256Mi/512Mi | 75% | `30aa095` |
+| Environment | Replicas (Base) | HPA Range | CPU (req/lim) | Memory (req/lim) | Target CPU | Target Memory | Image Tag |
+|------------|----------------|-----------|---------------|------------------|------------|---------------|-----------|
+| **dev** | 2 | 2-6 | 100m/200m | 64Mi/128Mi | 75% | 80% | `30aa095` |
+| **staging** | 3 | 3-12 | 200m/500m | 128Mi/256Mi | 75% | 80% | `30aa095` |
+| **prod** | 5 | 5-15 | 500m/1000m | 256Mi/512Mi | 75% | 80% | `30aa095` |
 
 ## 🚀 Deployment Commands
 
@@ -301,23 +301,23 @@ kubectl get hpa -n dev -w
 kubectl rollout status deployment/url-shortener -n dev -w
 ```
 
-## ⚖️ Autoscaling with HPA
+## ⚖️ Autoscaling with HPA V2
 
-The deployment uses Horizontal Pod Autoscaler (HPA) to automatically scale pods based on CPU utilization.
+The deployment uses Horizontal Pod Autoscaler V2 (HPA) to automatically scale pods based on CPU and memory utilization.
 
 ### HPA Configuration
 
-| Environment | Min Replicas | Max Replicas | Target CPU Utilization |
-|------------|--------------|--------------|------------------------|
-| **dev** | 2 | 6 | 75% |
-| **staging** | 3 | 12 | 75% |
-| **prod** | 5 | 15 | 75% |
+| Environment | Min Replicas | Max Replicas | Target CPU | Target Memory |
+|------------|--------------|--------------|------------|---------------|
+| **dev** | 2 | 6 | 75% | 80% |
+| **staging** | 3 | 12 | 75% | 80% |
+| **prod** | 5 | 15 | 75% | 80% |
 
 ### How It Works
 
-- HPA monitors the average CPU utilization across all pods
-- When CPU usage exceeds 75%, HPA scales up (adds more pods)
-- When CPU usage drops below 75%, HPA scales down (removes pods)
+- HPA V2 monitors both CPU and memory utilization across all pods
+- When CPU usage exceeds 75% or memory exceeds 80%, HPA scales up (adds more pods)
+- When both metrics drop below their targets, HPA scales down (removes pods)
 - Scaling respects the min/max replica limits for each environment
 
 ### Prerequisites
@@ -365,7 +365,7 @@ kubectl get hpa -n dev -w
 
 ### Customizing HPA Settings
 
-To adjust HPA settings for an environment, edit the overlay's `kustomization.yaml`:
+To adjust HPA V2 settings for an environment, edit the overlay's `kustomization.yaml`:
 
 ```yaml
 patches:
@@ -380,8 +380,11 @@ patches:
         path: /spec/maxReplicas
         value: 10  # Adjust maximum replicas
       - op: replace
-        path: /spec/targetCPUUtilizationPercentage
+        path: /spec/metrics/0/resource/target/averageUtilization
         value: 80  # Adjust target CPU percentage
+      - op: replace
+        path: /spec/metrics/1/resource/target/averageUtilization
+        value: 85  # Adjust target memory percentage
 ```
 
 ## 🔗 Related Resources

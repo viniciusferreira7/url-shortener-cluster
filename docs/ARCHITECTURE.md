@@ -50,7 +50,7 @@ The `k8s/api/base/` directory contains the core resources:
 - **Deployment**: 2 replicas (dev) with resource limits
 - **Service**: ClusterIP service for internal routing
 - **Secret**: Environment variables and credentials
-- **HPA**: Horizontal Pod Autoscaler for automatic scaling based on CPU utilization (75% target)
+- **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU (75% target) and memory utilization (80% target)
 
 ### Environment Overlays
 Each environment (dev, staging, prod) has an overlay that:
@@ -61,21 +61,21 @@ Each environment (dev, staging, prod) has an overlay that:
 
 **Development (dev)**
 - Base replicas: 2
-- HPA range: 2-6 pods (scales based on 75% CPU utilization)
+- HPA range: 2-6 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 100m/200m (request/limit)
 - Memory: 64Mi/128Mi
 - Image: `30aa095`
 
 **Staging**
 - Base replicas: 3
-- HPA range: 3-12 pods (scales based on 75% CPU utilization)
+- HPA range: 3-12 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 200m/500m
 - Memory: 128Mi/256Mi
 - Image: `30aa095`
 
 **Production**
 - Base replicas: 5
-- HPA range: 5-15 pods (scales based on 75% CPU utilization)
+- HPA range: 5-15 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 500m/1000m
 - Memory: 256Mi/512Mi
 - Image: `30aa095`
@@ -110,11 +110,13 @@ All credentials are stored in Kubernetes Secrets.
 
 ## Autoscaling Architecture
 
-The deployment implements **Horizontal Pod Autoscaling** (HPA) to handle varying load conditions:
+The deployment implements **Horizontal Pod Autoscaling V2** (HPA) to handle varying load conditions:
 
-### HPA Strategy
-- **Metric**: CPU utilization (75% target across all pods)
-- **Behavior**: Automatically adds or removes pods based on average CPU usage
+### HPA V2 Strategy
+- **Metrics**:
+  - CPU utilization (75% target across all pods)
+  - Memory utilization (80% target across all pods)
+- **Behavior**: Automatically adds or removes pods based on average CPU and memory usage
 - **Environment-specific scaling**:
   - Development: 2-6 pods
   - Staging: 3-12 pods
@@ -122,11 +124,12 @@ The deployment implements **Horizontal Pod Autoscaling** (HPA) to handle varying
 
 ### Requirements
 - **Metrics Server**: Must be installed in the cluster to provide CPU/memory metrics
-- **Resource requests**: Containers must define CPU requests for HPA calculations
-- **Monitoring**: HPA decisions are based on average CPU usage across all pod replicas
+- **Resource requests**: Containers must define CPU and memory requests for HPA calculations
+- **Monitoring**: HPA V2 decisions are based on average CPU and memory usage across all pod replicas
 
 ### Benefits
 - **Cost efficiency**: Scales down during low traffic periods
 - **Performance**: Automatically scales up during high traffic
 - **Reliability**: Maintains minimum replicas for high availability
 - **Protection**: Maximum replica limits prevent resource exhaustion
+- **Multi-metric scaling**: Considers both CPU and memory for more intelligent scaling decisions
