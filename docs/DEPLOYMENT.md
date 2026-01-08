@@ -241,11 +241,49 @@ kubectl top pods -n dev
 
 ### Testing Autoscaling
 
-Generate load to test HPA scaling:
+#### Using the Automated Stress Test Script
+
+The easiest way to test autoscaling is using the provided stress test script:
 
 ```bash
-# Start a load generator
-kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://url-shortener.dev.svc.cluster.local; done"
+# Run stress test on dev environment
+bash infra/scripts/test.sh dev
+
+# Run stress test on staging
+bash infra/scripts/test.sh staging
+
+# Run stress test on prod
+bash infra/scripts/test.sh prod
+```
+
+The script uses **Fortio** (a load testing tool) with environment-specific configurations:
+
+| Environment | QPS (queries/sec) | Duration | Connections | Details |
+|------------|------------------|----------|-------------|---------|
+| **dev** | 6,000 | 120s | 100 | Tests basic scaling behavior |
+| **staging** | 10,000 | 240s | 150 | Tests higher load scenarios |
+| **prod** | 1,500 | 360s | 200 | Long-duration stability test |
+
+During the test, monitor HPA scaling in another terminal:
+
+```bash
+# Watch HPA status
+kubectl get hpa -n dev -w
+
+# Watch pod scaling
+kubectl get pods -n dev -w
+
+# Monitor resource usage
+kubectl top pods -n dev
+```
+
+#### Manual Load Testing
+
+Alternatively, you can manually generate load:
+
+```bash
+# Start a simple load generator
+kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -n dev -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://url-shortener-service/; done"
 
 # In another terminal, watch the scaling
 kubectl get hpa -n dev -w

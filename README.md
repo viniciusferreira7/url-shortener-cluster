@@ -4,7 +4,26 @@
 
 Complete Kubernetes deployment configuration for the URL Shortener API using **Kustomize** and **kind** (Kubernetes in Docker).
 
+## 📖 Table of Contents
+
+- [🚀 Quick Start](#-quick-start)
+- [📁 Directory Structure](#-directory-structure)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [📦 Deployment Architecture](#-deployment-architecture)
+- [🚀 Deployment Commands](#-deployment-commands)
+- [🔐 Secrets Management](#-secrets-management)
+- [🔧 Configuration Management](#-configuration-management)
+- [📚 Documentation](#-documentation)
+- [🔄 Updating Deployments](#-updating-deployments)
+- [🧹 Cleanup](#-cleanup)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [📊 Resource Monitoring](#-resource-monitoring)
+- [⚖️ Autoscaling with HPA V2](#️-autoscaling-with-hpa-v2)
+- [🔗 Related Resources](#-related-resources)
+
 ## 🚀 Quick Start
+
+> 📖 For detailed deployment instructions, see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**
 
 ### 1. Create the Cluster
 ```bash
@@ -24,6 +43,8 @@ kubectl logs -f -n dev -l api=url-shortener-api
 
 ## 📁 Directory Structure
 
+> 📖 See the **[📚 Documentation](#-documentation)** section below for detailed guides
+
 ```
 url-shortener-cluster/
 ├── docs/                          # Comprehensive documentation
@@ -38,6 +59,7 @@ url-shortener-cluster/
 │   └── scripts/
 │       ├── setup.sh               # Create kind cluster
 │       ├── deploy.sh              # Deploy to any environment
+│       ├── test.sh                # Run stress tests with Fortio
 │       └── cleanup.sh             # Delete cluster
 │
 ├── k8s/                           # Kubernetes manifests
@@ -75,6 +97,8 @@ url-shortener-cluster/
 | **kubectl** | Latest | CLI for Kubernetes |
 
 ## 📦 Deployment Architecture
+
+> 📖 For detailed architecture information, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 
 ### Base Configuration
 Located in `k8s/api/base/`:
@@ -168,6 +192,8 @@ See [docs/SECRETS.md](docs/SECRETS.md) for detailed security guidance.
 
 ## 🔧 Configuration Management
 
+> 📖 Learn more about the architecture in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+
 ### Kustomize Strategy
 This project uses the **base + overlays pattern**:
 
@@ -196,12 +222,39 @@ replicas:
 
 ## 📚 Documentation
 
-Comprehensive guides are available in the `docs/` directory:
+Comprehensive guides are available in the `docs/` directory. Each document provides in-depth coverage of specific aspects of the project:
 
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Design patterns, namespace organization, GitOps strategy
-- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Complete deployment guide with manual & script methods
-- **[SECRETS.md](docs/SECRETS.md)** - Secret management, security best practices, migration path
-- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+### Architecture & Design
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete project architecture
+  - Project structure and organization
+  - Deployment architecture patterns
+  - Kustomize base + overlays strategy
+  - Network and autoscaling architecture
+  - Testing and performance validation
+
+### Deployment & Operations
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Step-by-step deployment guide
+  - Prerequisites and setup instructions
+  - Manual and automated deployment methods
+  - Environment-specific configurations
+  - HPA V2 setup and monitoring
+  - Stress testing with Fortio
+  - Update and rollback procedures
+
+### Security
+- **[SECRETS.md](docs/SECRETS.md)** - Secrets management guide
+  - Current secrets configuration
+  - Security best practices
+  - Production-ready secret management
+  - Migration paths to secure solutions
+
+### Troubleshooting
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Problem-solving guide
+  - Common issues and solutions
+  - Cluster, deployment, and service issues
+  - Performance debugging
+  - Load testing and stress testing
+  - Recovery procedures
 
 ## 🔄 Updating Deployments
 
@@ -268,6 +321,8 @@ bash infra/scripts/cleanup.sh
 
 ## 🔍 Troubleshooting
 
+> 📖 For comprehensive troubleshooting guidance, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**
+
 ### Quick Diagnostics
 ```bash
 # Check pod status
@@ -302,6 +357,8 @@ kubectl rollout status deployment/url-shortener -n dev -w
 ```
 
 ## ⚖️ Autoscaling with HPA V2
+
+> 📖 For detailed HPA configuration and testing, see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#horizontal-pod-autoscaler-v2-hpa)**
 
 The deployment uses Horizontal Pod Autoscaler V2 (HPA) to automatically scale pods based on CPU and memory utilization.
 
@@ -352,15 +409,34 @@ kubectl top pods -n dev
 
 ### Testing Autoscaling
 
-To test HPA behavior, generate load on your application:
+> 📖 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-and-performance-validation)** for testing strategy details
+
+You can test HPA behavior using the provided stress testing script:
 
 ```bash
-# Generate load (example using a load testing tool)
-# The HPA will automatically scale up when CPU exceeds 75%
-kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://url-shortener.dev.svc.cluster.local; done"
+# Run stress test on dev environment
+bash infra/scripts/test.sh dev
 
+# Run stress test on staging
+bash infra/scripts/test.sh staging
+
+# Run stress test on prod
+bash infra/scripts/test.sh prod
+```
+
+The script uses **Fortio** to generate load with environment-specific configurations:
+
+| Environment | QPS (queries/sec) | Duration | Connections |
+|------------|------------------|----------|-------------|
+| **dev** | 6,000 | 120s | 100 |
+| **staging** | 10,000 | 240s | 150 |
+| **prod** | 1,500 | 360s | 200 |
+
+Watch HPA scaling during the test:
+```bash
 # In another terminal, watch the scaling
 kubectl get hpa -n dev -w
+kubectl get pods -n dev -w
 ```
 
 ### Customizing HPA Settings

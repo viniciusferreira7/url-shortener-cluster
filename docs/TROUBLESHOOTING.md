@@ -264,6 +264,27 @@ kubectl get pod POD_NAME -n dev -o yaml | grep -A 5 "readinessProbe"
 kubectl get secret url-shortener-secret -n dev -o yaml
 ```
 
+#### Load testing and stress testing
+
+Use the stress test script to validate performance under load:
+
+```bash
+# Run stress test
+bash infra/scripts/test.sh dev
+
+# Monitor during test
+kubectl top pods -n dev
+kubectl get hpa -n dev -w
+kubectl logs -f -n dev -l api=url-shortener-api
+```
+
+If the application performs poorly under load:
+1. Check HPA configuration and scaling thresholds
+2. Review resource limits (CPU/Memory)
+3. Monitor for CrashLoopBackOff or OOMKilled events
+4. Check application logs for errors
+5. Verify external dependencies (database, Redis) are responding
+
 ### Recovery Procedures
 
 #### Restart deployment

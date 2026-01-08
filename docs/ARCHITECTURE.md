@@ -13,6 +13,7 @@ url-shortener-cluster/
 │   └── scripts/
 │       ├── setup.sh         # Cluster setup script
 │       ├── deploy.sh        # Deployment script
+│       ├── test.sh          # Stress test script (Fortio)
 │       └── cleanup.sh       # Cleanup script
 │
 ├── k8s/                     # Kubernetes manifests
@@ -133,3 +134,31 @@ The deployment implements **Horizontal Pod Autoscaling V2** (HPA) to handle vary
 - **Reliability**: Maintains minimum replicas for high availability
 - **Protection**: Maximum replica limits prevent resource exhaustion
 - **Multi-metric scaling**: Considers both CPU and memory for more intelligent scaling decisions
+
+## Testing and Performance Validation
+
+The project includes automated stress testing capabilities using **Fortio**, a load testing tool that helps validate HPA behavior and application performance.
+
+### Stress Test Script
+Location: `infra/scripts/test.sh`
+
+The script provides environment-specific load testing:
+
+| Environment | QPS | Duration | Connections | Purpose |
+|------------|-----|----------|-------------|---------|
+| **dev** | 6,000 | 120s | 100 | Basic scaling validation |
+| **staging** | 10,000 | 240s | 150 | High-load scenario testing |
+| **prod** | 1,500 | 360s | 200 | Long-duration stability |
+
+### Usage
+```bash
+bash infra/scripts/test.sh <environment>
+```
+
+The script deploys a temporary Fortio pod in the target namespace, generates load against the URL shortener service, and automatically removes the pod after completion.
+
+### Testing Strategy
+1. **Autoscaling validation**: Verify HPA scales pods up/down based on CPU and memory metrics
+2. **Performance benchmarking**: Measure response times and throughput under load
+3. **Stability testing**: Ensure application remains stable during sustained traffic
+4. **Resource monitoring**: Validate resource limits are appropriate for the workload
