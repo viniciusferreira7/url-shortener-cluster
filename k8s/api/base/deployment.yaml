@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: url-shortener-api
-          image: vinciusaf/url-shortener-api:ccba743
+          image: vinciusaf/url-shortener-api:f74f370
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3333

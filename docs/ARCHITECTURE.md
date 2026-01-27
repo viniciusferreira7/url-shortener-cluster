@@ -65,21 +65,21 @@ Each environment (dev, staging, prod) has an overlay that:
 - HPA range: 2-6 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 100m/200m (request/limit)
 - Memory: 64Mi/128Mi
-- Image: `ccba743`
+- Image: `f74f370`
 
 **Staging**
 - Base replicas: 3
 - HPA range: 3-12 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 200m/500m
 - Memory: 128Mi/256Mi
-- Image: `ccba743`
+- Image: `f74f370`
 
 **Production**
 - Base replicas: 5
 - HPA range: 5-15 pods (scales based on 75% CPU and 80% memory utilization)
 - CPU: 500m/1000m
 - Memory: 256Mi/512Mi
-- Image: `ccba743`
+- Image: `f74f370`
 
 ## Kustomize Strategy
 

@@ -6,6 +6,8 @@ set -e
 ENVIRONMENT="${1:-dev}"
 K8S_DIR="$(dirname "$0")/../../k8s"
 
+# TODO: Add scripts to get databases too
+
 echo "Deploying to $ENVIRONMENT environment"
 
 case "$ENVIRONMENT" in
