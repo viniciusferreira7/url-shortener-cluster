@@ -20,7 +20,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/image
-        value: vinciusaf/url-shortener-api:a15d69b
+        value: vinciusaf/url-shortener-api:ccba743
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
         value: 500m

@@ -22,11 +22,18 @@ spec:
     spec:
       containers:
         - name: url-shortener-api
-          image: vinciusaf/url-shortener-api:a15d69b
+          image: vinciusaf/url-shortener-api:ccba743
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3333
-
+          statupProbes:
+            httpGet: 
+              path: /heathz
+              port: 3333
+              failureThreshold: 3
+              successThreshold: 3
+              timeoutSeconds: 1
+              periodSeconds: 10
           envFrom:
           - secretRef:
               name: url-shortener-secret
