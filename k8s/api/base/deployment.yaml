@@ -28,7 +28,7 @@ spec:
             - containerPort: 3333
           startupProbe:
             httpGet: 
-              path: api/heathz
+              path: /api/healthz
               port: 3333
             failureThreshold: 3
             successThreshold: 1
