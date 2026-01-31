@@ -42,6 +42,15 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
             periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3333
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 1
+            periodSeconds: 30
+            initialDelaySeconds: 60
           envFrom:
           - secretRef:
               name: url-shortener-secret
