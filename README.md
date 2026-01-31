@@ -18,6 +18,7 @@ Complete Kubernetes deployment configuration for the URL Shortener API using **K
 - [🧹 Cleanup](#-cleanup)
 - [🔍 Troubleshooting](#-troubleshooting)
 - [📊 Resource Monitoring](#-resource-monitoring)
+- [🏥 Health Probes](#-health-probes)
 - [⚖️ Autoscaling with HPA V2](#️-autoscaling-with-hpa-v2)
 - [🔗 Related Resources](#-related-resources)
 
@@ -103,6 +104,9 @@ url-shortener-cluster/
 ### Base Configuration
 Located in `k8s/api/base/`:
 - **Deployment**: Container specification and pod configuration
+  - **startupProbe**: Checks if the application has started successfully (`/api/healthz`)
+  - **livenessProbe**: Restarts the container if the application becomes unresponsive (`/api/healthz`)
+  - **readinessProbe**: Verifies the application is ready to accept traffic (`/api/readyz`)
 - **Service**: ClusterIP for internal routing (port 80 → 3333)
 - **Secret**: Environment variables and credentials
 - **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU and memory utilization
@@ -354,6 +358,54 @@ kubectl get hpa -n dev -w
 
 # Watch deployment rollout
 kubectl rollout status deployment/url-shortener -n dev -w
+```
+
+## 🏥 Health Probes
+
+The deployment includes three types of health check probes to ensure application reliability:
+
+### Startup Probe
+- **Endpoint**: `/api/healthz`
+- **Purpose**: Verifies the application has started successfully
+- **Configuration**:
+  - Failure threshold: 3 attempts
+  - Period: 10 seconds
+  - Timeout: 1 second
+- **Behavior**: Kubernetes waits for the startup probe to succeed before checking liveness and readiness
+
+### Liveness Probe
+- **Endpoint**: `/api/healthz`
+- **Purpose**: Detects and recovers from application deadlocks or hangs
+- **Configuration**:
+  - Initial delay: 60 seconds (waits after container starts)
+  - Failure threshold: 3 attempts
+  - Period: 30 seconds
+  - Timeout: 1 second
+- **Behavior**: If the probe fails 3 consecutive times, Kubernetes restarts the container
+
+### Readiness Probe
+- **Endpoint**: `/api/readyz`
+- **Purpose**: Determines if the pod is ready to receive traffic
+- **Configuration**:
+  - Failure threshold: 3 attempts
+  - Period: 15 seconds
+  - Timeout: 1 second
+- **Behavior**: Pods failing readiness checks are removed from service endpoints
+
+### Checking Probe Status
+
+```bash
+# View probe configuration
+kubectl describe pod POD_NAME -n dev | grep -A 10 "Probes"
+
+# Check pod readiness and restarts
+kubectl get pods -n dev
+
+# View events related to probe failures
+kubectl get events -n dev --sort-by='.lastTimestamp' | grep -i probe
+
+# Check for container restarts due to liveness probe
+kubectl describe pod POD_NAME -n dev | grep -i restart
 ```
 
 ## ⚖️ Autoscaling with HPA V2

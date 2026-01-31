@@ -48,7 +48,10 @@ url-shortener-cluster/
 
 ### Base Configuration
 The `k8s/api/base/` directory contains the core resources:
-- **Deployment**: 2 replicas (dev) with resource limits
+- **Deployment**: 2 replicas (dev) with resource limits and health probes
+  - **startupProbe**: HTTP check on `/api/healthz` (every 10s, 3 attempts max)
+  - **livenessProbe**: HTTP check on `/api/healthz` (every 30s after 60s delay, 3 attempts max)
+  - **readinessProbe**: HTTP check on `/api/readyz` (every 15s, 3 attempts max)
 - **Service**: ClusterIP service for internal routing
 - **Secret**: Environment variables and credentials
 - **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU (75% target) and memory utilization (80% target)
@@ -100,6 +103,10 @@ This approach provides:
 - **API Port**: 3333 (container)
 - **Service Port**: 80 (internal routing)
 - **Namespace Isolation**: Each environment in its own namespace
+- **Health Checks**:
+  - **Startup probe**: `/api/healthz` - Validates application startup
+  - **Liveness probe**: `/api/healthz` - Detects and restarts unhealthy containers
+  - **Readiness probe**: `/api/readyz` - Controls service traffic routing
 
 ## Data Dependencies
 

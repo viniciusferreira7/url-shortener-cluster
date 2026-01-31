@@ -319,6 +319,173 @@ Then redeploy:
 kubectl apply -k k8s/api/overlays/dev
 ```
 
+## Health Probes
+
+The deployment includes three types of health check probes to ensure application reliability, proper traffic routing, and automatic recovery from failures.
+
+### Startup Probe
+
+The startup probe checks if the application has started successfully before the liveness and readiness probes begin.
+
+**Configuration:**
+```yaml
+startupProbe:
+  httpGet:
+    path: /api/healthz
+    port: 3333
+  failureThreshold: 3
+  successThreshold: 1
+  timeoutSeconds: 1
+  periodSeconds: 10
+```
+
+- **Endpoint**: `/api/healthz` - Application health check endpoint
+- **Failure threshold**: 3 attempts (30 seconds total: 3 × 10s)
+- **Period**: Checks every 10 seconds
+- **Timeout**: 1 second per request
+
+**Purpose**: Prevents liveness and readiness checks from failing during slow application startup. The container is given up to 30 seconds to start before being restarted.
+
+### Liveness Probe
+
+The liveness probe detects when the application is in a broken state and needs to be restarted.
+
+**Configuration:**
+```yaml
+livenessProbe:
+  httpGet:
+    path: /api/healthz
+    port: 3333
+  initialDelaySeconds: 60
+  failureThreshold: 3
+  successThreshold: 1
+  timeoutSeconds: 1
+  periodSeconds: 30
+```
+
+- **Endpoint**: `/api/healthz` - Application health check endpoint
+- **Initial delay**: 60 seconds (waits after container starts)
+- **Failure threshold**: 3 attempts (90 seconds total: 3 × 30s)
+- **Period**: Checks every 30 seconds
+- **Timeout**: 1 second per request
+
+**Purpose**: Automatically recovers from application deadlocks, hangs, or corrupted states by restarting the container. Only runs after the startup probe succeeds.
+
+**Important**: The liveness probe uses a 30-second period to avoid unnecessary restarts during temporary issues. It waits 60 seconds after startup to allow the application to stabilize.
+
+### Readiness Probe
+
+The readiness probe determines if the pod is ready to receive traffic.
+
+**Configuration:**
+```yaml
+readinessProbe:
+  httpGet:
+    path: /api/readyz
+    port: 3333
+  failureThreshold: 3
+  successThreshold: 1
+  timeoutSeconds: 1
+  periodSeconds: 15
+```
+
+- **Endpoint**: `/api/readyz` - Application readiness check endpoint
+- **Failure threshold**: 3 attempts (45 seconds total: 3 × 15s)
+- **Period**: Checks every 15 seconds
+- **Timeout**: 1 second per request
+
+**Purpose**: Ensures only healthy pods receive traffic. If a pod fails readiness checks, it's removed from service endpoints until it becomes healthy again.
+
+### Monitoring Probe Health
+
+```bash
+# Check pod readiness status and restart count
+kubectl get pods -n dev
+
+# View detailed probe information
+kubectl describe pod POD_NAME -n dev | grep -A 10 "Probes"
+
+# Check for probe-related events
+kubectl get events -n dev --sort-by='.lastTimestamp' | grep -i probe
+
+# View logs if probes are failing
+kubectl logs POD_NAME -n dev
+
+# Check container restart history
+kubectl describe pod POD_NAME -n dev | grep -A 5 "Containers:"
+```
+
+### Troubleshooting Probe Failures
+
+#### Startup Probe Failures
+
+If pods are restarting repeatedly during startup:
+
+1. **Check startup logs**:
+   ```bash
+   kubectl logs POD_NAME -n dev --previous
+   ```
+
+2. **Verify the application starts within 30 seconds**
+
+3. **Check dependencies** (database, Redis) are available at startup
+
+#### Liveness Probe Failures
+
+If pods are restarting due to liveness probe failures:
+
+1. **Check restart count**:
+   ```bash
+   kubectl get pods -n dev
+   kubectl describe pod POD_NAME -n dev | grep -i restart
+   ```
+
+2. **Review logs before restart**:
+   ```bash
+   kubectl logs POD_NAME -n dev --previous
+   ```
+
+3. **Test the health endpoint**:
+   ```bash
+   kubectl port-forward POD_NAME -n dev 3333:3333
+   curl http://localhost:3333/api/healthz
+   ```
+
+4. **Check for deadlocks or resource exhaustion**:
+   ```bash
+   kubectl top pods -n dev
+   ```
+
+**Common causes of liveness failures:**
+- Application deadlocks or infinite loops
+- Memory leaks causing OOM conditions
+- Database connection pool exhaustion
+- External dependency timeouts
+- Thread starvation
+
+#### Readiness Probe Failures
+
+If pods are not becoming ready or receiving traffic:
+
+1. **Check the health endpoints**:
+   ```bash
+   kubectl port-forward POD_NAME -n dev 3333:3333
+   curl http://localhost:3333/api/healthz
+   curl http://localhost:3333/api/readyz
+   ```
+
+2. **Review pod logs for errors**:
+   ```bash
+   kubectl logs POD_NAME -n dev
+   ```
+
+3. **Check if dependencies are available** (database, Redis, etc.)
+
+4. **Verify service endpoints**:
+   ```bash
+   kubectl get endpoints url-shortener-service -n dev
+   ```
+
 ## Best Practices
 
 1. **Always test in dev first** before deploying to staging/prod
@@ -330,3 +497,4 @@ kubectl apply -k k8s/api/overlays/dev
 7. **Tag releases** in git before production deployments
 8. **Monitor HPA V2 behavior** to ensure scaling thresholds are appropriate for both CPU and memory
 9. **Ensure Metrics Server is running** before deploying HPA V2-enabled applications
+10. **Monitor health probe status** to ensure pods are becoming ready and staying healthy
