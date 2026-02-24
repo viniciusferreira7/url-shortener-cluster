@@ -64,3 +64,10 @@ spec:
             limits:
               cpu: 200m
               memory: 192Mi
+          volumeMounts: 
+            - name: url-shortener-data
+              mountPath: /usr/src/app/data
+      volumes: 
+        - name: url-shortener-data
+          persistentVolumeClaim:
+            claimName: url-shortener-persistent-volume-claim
