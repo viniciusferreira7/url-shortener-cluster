@@ -27,13 +27,13 @@ spec:
           ports:
             - containerPort: 3333
           startupProbe:
-            httpGet: 
+            httpGet:
               path: /api/healthz
               port: 3333
-            failureThreshold: 3
+            failureThreshold: 12
             successThreshold: 1
             timeoutSeconds: 1
-            periodSeconds: 10
+            periodSeconds: 5
             initialDelaySeconds: 5
           readinessProbe:
             httpGet:
@@ -64,10 +64,3 @@ spec:
             limits:
               cpu: 200m
               memory: 192Mi
-          volumeMounts: 
-            - name: url-shortener-data
-              mountPath: /usr/src/app/data
-      volumes: 
-        - name: url-shortener-data
-          persistentVolumeClaim:
-            claimName: url-shortener-persistent-volume-claim
