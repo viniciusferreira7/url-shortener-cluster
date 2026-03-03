@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: url-shortener-redis
+  namespace: dev
+
+spec:
+  serviceName: redis-data
+  replicas: 1
+
+  selector:
+    matchLabels:
+      redis: url-shortener-redis
+
+  template:
+    metadata:
+      labels:
+        redis: url-shortener-redis
+
+    spec:
+      containers:
+        - name: url-shortener-redis
+          image: redis:7.4-alpine
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 6379
+
+          command: ["redis-server", "--requirepass", "$(REDIS_PASSWORD)"]
+
+          envFrom:
+            - secretRef:
+                name: redis-secret
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a $REDIS_PASSWORD ping"]
+            periodSeconds: 5
+            failureThreshold: 30
+
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a $REDIS_PASSWORD ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a $REDIS_PASSWORD ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
