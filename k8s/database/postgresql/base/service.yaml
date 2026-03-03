@@ -5,7 +5,7 @@ metadata:
   namespace: dev
 spec:
   selector:
-    app: postgres-data
+    postgresql: url-shortener-postgresql
   ports:
     - port: 5432
       targetPort: 5432

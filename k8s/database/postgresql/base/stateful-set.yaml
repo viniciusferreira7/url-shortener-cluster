@@ -6,7 +6,7 @@ metadata:
   namespace: dev
 
 spec:
-  serviceName: postgres
+  serviceName: postgres-data
   replicas: 1
 
   selector:
