@@ -31,12 +31,17 @@ Complete Kubernetes deployment configuration for the URL Shortener API using **K
 bash infra/scripts/setup.sh
 ```
 
-### 2. Deploy to Development
+### 2. Add host entry (once)
+```bash
+echo "127.0.0.1 url-shortener.local" | sudo tee -a /etc/hosts
+```
+
+### 3. Deploy to Development
 ```bash
 bash infra/scripts/deploy.sh dev
 ```
 
-### 3. Verify Deployment
+### 4. Verify Deployment
 ```bash
 kubectl get pods -n dev
 kubectl logs -f -n dev -l api=url-shortener-api
@@ -56,9 +61,11 @@ url-shortener-cluster/
 │
 ├── infra/                         # Infrastructure & automation
 │   ├── kind/
-│   │   └── config.yaml            # KinD cluster configuration
+│   │   ├── config.yaml            # KinD cluster configuration (with port mappings)
+│   │   ├── deploy.yaml            # Nginx ingress controller manifest
+│   │   └── metrics-server.yaml    # Metrics server manifest
 │   └── scripts/
-│       ├── setup.sh               # Create kind cluster
+│       ├── setup.sh               # Create kind cluster + ingress controller
 │       ├── deploy.sh              # Deploy to any environment
 │       ├── test.sh                # Run stress tests with Fortio
 │       └── cleanup.sh             # Delete cluster
@@ -67,22 +74,31 @@ url-shortener-cluster/
 │   ├── namespaces/
 │   │   └── dev.yaml               # Development namespace
 │   │
-│   └── api/                       # URL Shortener API
-│       ├── kustomization.yaml     # Base kustomization
-│       │
-│       ├── base/                  # Base resources (all environments)
-│       │   ├── deployment.yaml
-│       │   ├── service.yaml
-│       │   ├── secret.yaml
-│       │   └── hpa.yaml           # Horizontal Pod Autoscaler
-│       │
-│       └── overlays/              # Environment-specific customizations
-│           ├── dev/               # Development
-│           │   └── kustomization.yaml
-│           ├── staging/           # Staging
-│           │   └── kustomization.yaml
-│           └── prod/              # Production
-│               └── kustomization.yaml
+│   ├── api/                       # URL Shortener API
+│   │   ├── base/                  # Base resources (all environments)
+│   │   │   ├── deployment.yaml
+│   │   │   ├── service.yaml
+│   │   │   ├── secret.yaml
+│   │   │   ├── hpa.yaml           # Horizontal Pod Autoscaler
+│   │   │   └── ingress.yaml       # Nginx Ingress (external access)
+│   │   └── overlays/              # Environment-specific customizations
+│   │       ├── dev/
+│   │       ├── staging/
+│   │       └── prod/
+│   │
+│   └── database/
+│       ├── postgresql/
+│       │   ├── base/              # StatefulSet, Service, Secret
+│       │   └── overlays/
+│       │       ├── dev/
+│       │       ├── staging/
+│       │       └── prod/
+│       └── redis/
+│           ├── base/              # StatefulSet, Service, Secret
+│           └── overlays/
+│               ├── dev/
+│               ├── staging/
+│               └── prod/
 │
 └── README.md                      # This file
 ```
@@ -96,6 +112,7 @@ url-shortener-cluster/
 | **Kustomize** | Built-in | Configuration management |
 | **Docker** | Latest | Container runtime |
 | **kubectl** | Latest | CLI for Kubernetes |
+| **nginx ingress** | 1.14.3 | External traffic routing |
 
 ## 📦 Deployment Architecture
 
@@ -110,6 +127,12 @@ Located in `k8s/api/base/`:
 - **Service**: ClusterIP for internal routing (port 80 → 3333)
 - **Secret**: Environment variables and credentials
 - **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU and memory utilization
+- **Ingress**: nginx Ingress resource routing external traffic via `url-shortener.local`
+
+### Database
+Located in `k8s/database/`:
+- **PostgreSQL**: StatefulSet with 5Gi storage (dev) — overlays scale resources and storage per environment
+- **Redis**: StatefulSet with 1Gi storage (dev) — overlays scale resources and storage per environment
 
 ### Environment Overlays
 Each environment extends the base with specific customizations:
@@ -144,6 +167,21 @@ kubectl apply -k k8s/api/overlays/dev
 
 # Dry-run to check what will be applied
 kubectl apply -k k8s/api/overlays/prod --dry-run=client
+```
+
+### Deploy Databases
+```bash
+# PostgreSQL
+kubectl apply -k k8s/database/postgresql/overlays/dev
+
+# Redis
+kubectl apply -k k8s/database/redis/overlays/dev
+```
+
+### Check Ingress
+```bash
+kubectl get ingress -n dev
+curl http://url-shortener.local
 ```
 
 ### Verify Deployment

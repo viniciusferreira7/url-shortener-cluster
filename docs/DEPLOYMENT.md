@@ -17,31 +17,52 @@ bash scripts/setup.sh
 ```
 
 This will:
-- Create a new kind cluster named `url-shortener`
+- Create a new kind cluster named `url-shortener` with port mappings (80/443)
+- Install the nginx ingress controller and wait for it to be ready
+- Install the metrics server
 - Configure kubectl context
 - Display connection information
 
-### 2. Deploy to Development Environment
+### 2. Add host entry (once)
+
+```bash
+echo "127.0.0.1 url-shortener.local" | sudo tee -a /etc/hosts
+```
+
+### 3. Deploy to Development Environment
 
 ```bash
 cd infra
 bash scripts/deploy.sh dev
 ```
 
-### 3. Verify Deployment
+### 4. Deploy Databases
+
+```bash
+kubectl apply -k k8s/database/postgresql/overlays/dev
+kubectl apply -k k8s/database/redis/overlays/dev
+```
+
+### 5. Verify Deployment
 
 ```bash
 # Check namespace
 kubectl get namespaces
 
-# Check deployments
-kubectl get deployments -n dev
+# Check deployments and statefulsets
+kubectl get deployments,statefulsets -n dev
 
 # Check pods
 kubectl get pods -n dev
 
 # Check services
 kubectl get services -n dev
+
+# Check ingress
+kubectl get ingress -n dev
+
+# Test external access
+curl http://url-shortener.local
 
 # Check HPA status
 kubectl get hpa -n dev
@@ -59,31 +80,35 @@ kubectl logs -n dev -l api=url-shortener-api -f
 
 ```bash
 bash infra/scripts/deploy.sh staging
+kubectl apply -k k8s/database/postgresql/overlays/staging
+kubectl apply -k k8s/database/redis/overlays/staging
 ```
 
 ### Deploy to Production
 
 ```bash
 bash infra/scripts/deploy.sh prod
+kubectl apply -k k8s/database/postgresql/overlays/prod
+kubectl apply -k k8s/database/redis/overlays/prod
 ```
 
 ## Manual Kustomize Application
 
 If you prefer to apply without scripts:
 
-### Development
+### API
 ```bash
-kubectl apply -k k8s/api/overlays/dev
+kubectl apply -k k8s/api/overlays/dev      # or staging/prod
 ```
 
-### Staging
+### PostgreSQL
 ```bash
-kubectl apply -k k8s/api/overlays/staging
+kubectl apply -k k8s/database/postgresql/overlays/dev    # or staging/prod
 ```
 
-### Production
+### Redis
 ```bash
-kubectl apply -k k8s/api/overlays/prod
+kubectl apply -k k8s/database/redis/overlays/dev         # or staging/prod
 ```
 
 ## Viewing Configuration

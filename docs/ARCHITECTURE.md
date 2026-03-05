@@ -9,9 +9,11 @@ url-shortener-cluster/
 ├── docs/                    # Documentation
 ├── infra/                   # Infrastructure setup
 │   ├── kind/
-│   │   └── config.yaml      # KinD cluster configuration
+│   │   ├── config.yaml      # KinD cluster config (port mappings 80/443)
+│   │   ├── deploy.yaml      # Nginx ingress controller manifest
+│   │   └── metrics-server.yaml
 │   └── scripts/
-│       ├── setup.sh         # Cluster setup script
+│       ├── setup.sh         # Create cluster + install ingress controller
 │       ├── deploy.sh        # Deployment script
 │       ├── test.sh          # Stress test script (Fortio)
 │       └── cleanup.sh       # Cleanup script
@@ -20,18 +22,31 @@ url-shortener-cluster/
 │   ├── namespaces/
 │   │   └── dev.yaml         # Development namespace
 │   │
-│   └── api/                 # URL Shortener API
-│       ├── kustomization.yaml  # Base kustomization
-│       ├── base/            # Base resources
-│       │   ├── deployment.yaml
-│       │   ├── service.yaml
-│       │   ├── secret.yaml
-│       │   └── hpa.yaml     # Horizontal Pod Autoscaler
-│       │
-│       └── overlays/        # Environment-specific overlays
-│           ├── dev/
-│           ├── staging/
-│           └── prod/
+│   ├── api/                 # URL Shortener API
+│   │   ├── base/
+│   │   │   ├── deployment.yaml
+│   │   │   ├── service.yaml
+│   │   │   ├── secret.yaml
+│   │   │   ├── hpa.yaml
+│   │   │   └── ingress.yaml # Nginx Ingress (url-shortener.local)
+│   │   └── overlays/
+│   │       ├── dev/
+│   │       ├── staging/
+│   │       └── prod/
+│   │
+│   └── database/
+│       ├── postgresql/
+│       │   ├── base/        # StatefulSet, Service, Secret
+│       │   └── overlays/
+│       │       ├── dev/
+│       │       ├── staging/
+│       │       └── prod/
+│       └── redis/
+│           ├── base/        # StatefulSet, Service, Secret
+│           └── overlays/
+│               ├── dev/
+│               ├── staging/
+│               └── prod/
 │
 └── README.md                # Main documentation
 ```
@@ -55,6 +70,7 @@ The `k8s/api/base/` directory contains the core resources:
 - **Service**: ClusterIP service for internal routing
 - **Secret**: Environment variables and credentials
 - **HPA**: Horizontal Pod Autoscaler V2 for automatic scaling based on CPU (75% target) and memory utilization (80% target)
+- **Ingress**: nginx Ingress routing `url-shortener.local` → `url-shortener-service:80`
 
 ### Environment Overlays
 Each environment (dev, staging, prod) has an overlay that:
@@ -99,20 +115,43 @@ This approach provides:
 
 ## Network Architecture
 
-- **Service Type**: ClusterIP (internal cluster access)
-- **API Port**: 3333 (container)
-- **Service Port**: 80 (internal routing)
+- **External access**: nginx Ingress Controller (host: `url-shortener.local`)
+- **Service Type**: ClusterIP (internal cluster routing)
+- **API Port**: 3333 (container) → 80 (service) → Ingress
 - **Namespace Isolation**: Each environment in its own namespace
+- **kind port mappings**: host:80 → control-plane:80, host:443 → control-plane:443
 - **Health Checks**:
   - **Startup probe**: `/api/healthz` - Validates application startup
   - **Liveness probe**: `/api/healthz` - Detects and restarts unhealthy containers
   - **Readiness probe**: `/api/readyz` - Controls service traffic routing
 
+### Traffic Flow
+
+```
+curl http://url-shortener.local
+  → /etc/hosts (127.0.0.1)
+  → Docker port mapping (:80)
+  → nginx ingress controller
+  → url-shortener-service (ClusterIP :80)
+  → pod (:3333)
+```
+
 ## Data Dependencies
 
-- **PostgreSQL**: Database connection pooling
-- **Redis**: Caching and session management
+- **PostgreSQL**: StatefulSet with persistent storage, overlays per environment
+- **Redis**: StatefulSet with persistent storage, overlays per environment
 - **External Auth Service**: BETTER_AUTH_URL
+
+### Database Resource Profiles
+
+| Component | dev | staging | prod |
+|-----------|-----|---------|------|
+| **PostgreSQL storage** | 5Gi | 10Gi | 50Gi |
+| **PostgreSQL CPU** | 500m/1 | 500m/1 | 1/2 |
+| **PostgreSQL memory** | 1Gi/2Gi | 1Gi/2Gi | 2Gi/4Gi |
+| **Redis storage** | 1Gi | 2Gi | 5Gi |
+| **Redis CPU** | 50m/100m | 100m/250m | 250m/500m |
+| **Redis memory** | 64Mi/128Mi | 128Mi/256Mi | 256Mi/512Mi |
 
 All credentials are stored in Kubernetes Secrets.
 
