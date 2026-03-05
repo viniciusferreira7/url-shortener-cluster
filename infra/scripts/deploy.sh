@@ -6,19 +6,13 @@ set -e
 ENVIRONMENT="${1:-dev}"
 K8S_DIR="$(dirname "$0")/../../k8s"
 
-# TODO: Add scripts to get databases too
-
 echo "Deploying to $ENVIRONMENT environment"
 
 case "$ENVIRONMENT" in
-  dev)
-    OVERLAY_PATH="$K8S_DIR/api/overlays/dev"
-    ;;
-  staging)
-    OVERLAY_PATH="$K8S_DIR/api/overlays/staging"
-    ;;
-  prod)
-    OVERLAY_PATH="$K8S_DIR/api/overlays/prod"
+  dev|staging|prod)
+    API_OVERLAY="$K8S_DIR/api/overlays/$ENVIRONMENT"
+    POSTGRES_OVERLAY="$K8S_DIR/database/postgresql/overlays/$ENVIRONMENT"
+    REDIS_OVERLAY="$K8S_DIR/database/redis/overlays/$ENVIRONMENT"
     ;;
   *)
     echo "Invalid environment: $ENVIRONMENT"
@@ -30,10 +24,16 @@ esac
 echo "Creating namespace if it doesn't exist..."
 kubectl create namespace "$ENVIRONMENT" --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Applying Kustomize configuration from: $OVERLAY_PATH"
-kubectl apply -k "$OVERLAY_PATH"
+echo "Applying PostgreSQL configuration..."
+kubectl apply -k "$POSTGRES_OVERLAY"
+
+echo "Applying Redis configuration..."
+kubectl apply -k "$REDIS_OVERLAY"
+
+echo "Applying API configuration..."
+kubectl apply -k "$API_OVERLAY"
 
 echo "Deployment complete!"
 echo "To check deployment status, run:"
-echo "  kubectl get deployments -n $ENVIRONMENT"
+echo "  kubectl get deployments,statefulsets -n $ENVIRONMENT"
 echo "  kubectl get pods -n $ENVIRONMENT"
