@@ -64,4 +64,3 @@ spec:
             limits:
               cpu: 200m
               memory: 192Mi
-# TODO: expor a api para fora do cluster
