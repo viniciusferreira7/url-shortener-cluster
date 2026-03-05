@@ -6,22 +6,45 @@ Kubernetes Secrets store sensitive configuration and credentials. This guide cov
 
 ## Current Secret Structure
 
-Location: `k8s/api/base/secret.yaml`
+### API — `k8s/api/base/secret.yaml` (name: `url-shortener-secret`)
 
-### Secret Variables
-
-| Variable | Purpose | Current Value (decoded) |
-|----------|---------|------------------------|
+| Variable | Purpose | Example Value |
+|----------|---------|--------------|
 | `NODE_ENV` | Application environment | `development` |
 | `PORT` | API port | `3333` |
 | `CLIENT_URL` | Frontend URL | `http://localhost:3000` |
-| `BETTER_AUTH_URL` | Authentication service | `http://localhost:3333` |
-| `DATABASE_URL` | PostgreSQL connection | `postgresql://localhost:5432/url_shortener` |
-| `DATABASE_USERNAME` | DB user | `postgres` |
-| `DATABASE_PASSWORD` | DB password | `postgres` |
+| `BETTER_AUTH_URL` | Auth service endpoint | `http://localhost:3333` |
+| `BETTER_AUTH_SECRET` | Auth service secret | `your-auth-secret` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:password@postgres-data.dev.svc.cluster.local:5432/url_shortener_pg` |
+| `DATABASE_USERNAME` | DB user | `your-db-user` |
+| `DATABASE_PASSWORD` | DB password | `your-db-password` |
 | `DATABASE_NAME` | Database name | `url_shortener_pg` |
-| `REDIS_URL` | Redis connection | `redis://localhost:6379` |
-| `REDIS_PASSWORD` | Redis password | `redis` |
+| `REDIS_HOST` | Redis host (in-cluster DNS) | `redis-data.dev.svc.cluster.local` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_DB` | Redis database index | `0` |
+| `REDIS_CODE_ID` | Redis code identifier | `your-code-id` |
+| `REDIS_PASSWORD` | Redis password | `your-redis-password` |
+| `SECRET_HASH_KEY` | Hashing key | `your-hash-key` |
+| `GH_TOKEN` | GitHub personal access token | `github_pat_***` |
+| `JWT_SECRET` | JWT signing secret | `your-jwt-secret` |
+
+### PostgreSQL — `k8s/database/postgresql/base/secret.yaml` (name: `postgres-secret`)
+
+| Variable | Purpose | Example Value |
+|----------|---------|--------------|
+| `POSTGRES_USER` | Database user | `your-db-user` |
+| `POSTGRES_PASSWORD` | Database password | `your-db-password` |
+| `POSTGRES_DB` | Database name | `url_shortener_pg` |
+
+### Redis — `k8s/database/redis/base/secret.yaml` (name: `redis-secret`)
+
+| Variable | Purpose | Example Value |
+|----------|---------|--------------|
+| `REDIS_HOST` | Redis host | `redis-data.dev.svc.cluster.local` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_DB` | Redis database index | `0` |
+| `REDIS_PASSWORD` | Redis password | `your-redis-password` |
+| `REDIS_CODE_ID` | Redis code identifier | `your-code-id` |
 
 ## Decoding Secrets
 
@@ -34,19 +57,28 @@ kubectl get secrets -n dev
 
 ### View Secret Content
 ```bash
-# Show secret in YAML format
 kubectl get secret url-shortener-secret -n dev -o yaml
+kubectl get secret postgres-secret -n dev -o yaml
+kubectl get secret redis-secret -n dev -o yaml
 ```
 
 ### Decode Individual Values
 ```bash
-# Example: Decode DATABASE_PASSWORD
+# API
 kubectl get secret url-shortener-secret -n dev -o jsonpath='{.data.DATABASE_PASSWORD}' | base64 -d
+
+# PostgreSQL
+kubectl get secret postgres-secret -n dev -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d
+
+# Redis
+kubectl get secret redis-secret -n dev -o jsonpath='{.data.REDIS_PASSWORD}' | base64 -d
 ```
 
 ### Decode All Values (Linux/Mac)
 ```bash
 kubectl get secret url-shortener-secret -n dev -o json | jq '.data | map_values(@base64d)'
+kubectl get secret postgres-secret -n dev -o json | jq '.data | map_values(@base64d)'
+kubectl get secret redis-secret -n dev -o json | jq '.data | map_values(@base64d)'
 ```
 
 ## Updating Secrets
