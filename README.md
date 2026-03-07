@@ -139,9 +139,9 @@ Each environment extends the base with specific customizations:
 
 | Environment | Replicas (Base) | HPA Range | CPU (req/lim) | Memory (req/lim) | Target CPU | Target Memory | Image Tag |
 |------------|----------------|-----------|---------------|------------------|------------|---------------|-----------|
-| **dev** | 2 | 2-6 | 100m/200m | 64Mi/128Mi | 75% | 80% | `bf8b512` |
-| **staging** | 3 | 3-12 | 200m/500m | 128Mi/256Mi | 75% | 80% | `bf8b512` |
-| **prod** | 5 | 5-15 | 500m/1000m | 256Mi/512Mi | 75% | 80% | `bf8b512` |
+| **dev** | 2 | 2-6 | 100m/200m | 64Mi/128Mi | 75% | 80% | `5222b5b` |
+| **staging** | 3 | 3-12 | 200m/500m | 128Mi/256Mi | 75% | 80% | `5222b5b` |
+| **prod** | 5 | 5-15 | 500m/1000m | 256Mi/512Mi | 75% | 80% | `5222b5b` |
 
 ## 🚀 Deployment Commands
 
