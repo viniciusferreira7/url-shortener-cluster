@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: url-shortener-api
-          image: vinciusaf/url-shortener-api:bf8b512
+          image: vinciusaf/url-shortener-api:5222b5b
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3333
@@ -34,7 +34,7 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
             periodSeconds: 5
-            initialDelaySeconds: 5
+            initialDelaySeconds: 20
           readinessProbe:
             httpGet:
               path: /api/public/readyz
@@ -43,7 +43,7 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
             periodSeconds: 15
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30
           livenessProbe:
             httpGet:
               path: /api/public/healthz
