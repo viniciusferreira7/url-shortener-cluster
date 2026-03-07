@@ -1,7 +1,5 @@
 # URL Shortener Cluster - Kubernetes Deployment
 
-> ⚠️ **Work In Progress** - This project is currently under active development.
-
 Complete Kubernetes deployment configuration for the URL Shortener API using **Kustomize** and **kind** (Kubernetes in Docker).
 
 ## 📖 Table of Contents
